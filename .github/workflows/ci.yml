@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm audit --audit-level=moderate
+      - run: npm pack --dry-run
+
+  integration:
+    name: Real Rust language-server specs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LUMINE_JASMINE_REPORTER: list
+      RUST_ANALYZER_VERSION: 2026-09-28
+      RUST_ANALYZER_SHA256: 23f711d86b5f826e22886f01d7355dc01e0f4c1357dafa29710a95b903b48c85
+      RUST_TOOLCHAIN: 1.97.0
+      RUST_ANALYZER_REQUIRED: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: ide-rust
+      - uses: actions/checkout@v7
+        with:
+          repository: lumine-code/lumine
+          path: lumine
+      - uses: actions/checkout@v7
+        with:
+          repository: lumine-code/ide-client
+          path: ide-client
+      - uses: actions/checkout@v7
+        with:
+          repository: lumine-code/language-rust
+          path: language-rust
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: lumine/.nvmrc
+          cache: npm
+          cache-dependency-path: |
+            lumine/package-lock.json
+            ide-rust/package-lock.json
+            ide-client/package-lock.json
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libx11-dev libxkbfile-dev libsecret-1-dev
+      - name: Use HTTPS for git dependencies
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      - name: Install the Rust SDK
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rust-src,rustfmt
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Install the pinned rust-analyzer
+        working-directory: ide-rust
+        run: |
+          mkdir .server
+          asset="rust-analyzer-x86_64-unknown-linux-gnu.gz"
+          curl -fsSL "https://github.com/rust-lang/rust-analyzer/releases/download/${RUST_ANALYZER_VERSION}/${asset}" -o ".server/${asset}"
+          echo "${RUST_ANALYZER_SHA256}  .server/${asset}" | sha256sum --check -
+          gunzip -c ".server/${asset}" > .server/rust-analyzer
+          chmod +x .server/rust-analyzer
+          echo "RUST_ANALYZER_PATH=$PWD/.server/rust-analyzer" >> "$GITHUB_ENV"
+      - run: npm ci --ignore-scripts
+        working-directory: ide-rust
+      - run: npm ci --ignore-scripts
+        working-directory: ide-client
+      - run: npm ci --ignore-scripts
+        working-directory: lumine
+      - run: node ./node_modules/electron/install.js
+        working-directory: lumine
+      - run: npm run build
+        working-directory: lumine
+      - name: Link package sources for the integration suite
+        run: |
+          mkdir -p "$HOME/.lumine/packages-dev"
+          for package in ide-rust ide-client language-rust; do
+            ln -s "$GITHUB_WORKSPACE/$package" "$HOME/.lumine/packages-dev/$package"
+          done
+      - name: Run Jasmine specs inside Lumine
+        working-directory: lumine
+        env:
+          LUMINE_RESOURCE_PATH: ${{ github.workspace }}/lumine
+        run: xvfb-run --auto-servernum npm start -- --dev --test ../ide-rust/spec

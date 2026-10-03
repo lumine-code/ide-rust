@@ -1,0 +1,273 @@
+{
+  "name": "ide-rust",
+  "author": "lumine-code",
+  "description": "Provide Rust language features with rust-analyzer.",
+  "repository": "https://github.com/lumine-code/ide-rust",
+  "bugs": {
+    "url": "https://github.com/lumine-code/ide-rust/issues"
+  },
+  "keywords": [
+    "rust-analyzer",
+    "cargo",
+    "rustfmt",
+    "language-server",
+    "lsp",
+    "refactoring"
+  ],
+  "version": "1.0.0",
+  "license": "MIT",
+  "engines": {
+    "lumine": "^1.0.0"
+  },
+  "main": "./lib/main",
+  "files": [
+    "lib",
+    "spec"
+  ],
+  "scripts": {
+    "test": "lumine --test spec",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "consumedServices": {
+    "ide-client": {
+      "versions": {
+        "^1.0.0": "consumeIdeClient"
+      }
+    }
+  },
+  "providedServices": {
+    "background-tips.provider": {
+      "versions": {
+        "1.0.0": "provideBackgroundTips"
+      }
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-n": "^18.4.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "vscode-jsonrpc": "^9.0.3"
+  },
+  "configSchema": {
+    "serverPath": {
+      "title": "Server Path",
+      "description": "Absolute path to rust-analyzer. Leave empty to use the managed installation, then a working server on PATH.",
+      "type": "string",
+      "default": ""
+    },
+    "notifyWhenMissing": {
+      "title": "Notify When Missing",
+      "description": "Offer to install rust-analyzer when no working server can be found.",
+      "type": "boolean",
+      "default": true
+    },
+    "toolchain": {
+      "title": "Rust Toolchain",
+      "description": "Rustup toolchain such as stable or nightly. Leave empty to respect the project rust-toolchain.toml and your Rust environment.",
+      "type": "string",
+      "default": ""
+    },
+    "features": {
+      "title": "Features",
+      "description": "Which rust-analyzer features the editor uses. Code lenses require client commands that the editor does not yet execute; type hierarchy is not supplied by rust-analyzer.",
+      "type": "object",
+      "scopeResolution": "grammar",
+      "properties": {
+        "diagnostics": {
+          "title": "Diagnostics",
+          "description": "Report Rust analysis and Cargo check findings.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "autocomplete": {
+          "title": "Autocomplete",
+          "description": "Complete names, fields, methods and imports.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "hover": {
+          "title": "Hover",
+          "description": "Show Rust types and documentation on hover.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "signature": {
+          "title": "Signature Help",
+          "description": "Show function parameters while entering arguments.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "definition": {
+          "title": "Go To Definition",
+          "description": "Navigate to declarations, definitions, types and implementations.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "references": {
+          "title": "Find References",
+          "description": "Find uses of a symbol across the project.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "callHierarchy": {
+          "title": "Call Hierarchy",
+          "description": "Navigate between functions and their callers.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "symbols": {
+          "title": "Symbols",
+          "description": "Find document and project symbols.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "format": {
+          "title": "Format",
+          "description": "Format Rust documents through rustfmt.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "rename": {
+          "title": "Rename",
+          "description": "Rename symbols across the project.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "codeActions": {
+          "title": "Code Actions",
+          "description": "Apply fixes and refactorings supplied by rust-analyzer.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "inlayHints": {
+          "title": "Inlay Hints",
+          "description": "Show inferred types and parameter names inline.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        },
+        "semanticTokens": {
+          "title": "Semantic Tokens",
+          "description": "Classify Rust symbols using semantic information.",
+          "type": "boolean",
+          "scopeResolution": "grammar",
+          "default": true
+        }
+      }
+    },
+    "checkOnSave": {
+      "title": "Check On Save",
+      "description": "Control Cargo checks after saving. Server Default preserves rust-analyzer's choice.",
+      "type": "string",
+      "enum": [
+        "server-default",
+        "enabled",
+        "disabled"
+      ],
+      "default": "server-default"
+    },
+    "checkCommand": {
+      "title": "Check Command",
+      "description": "Choose cargo check or cargo clippy for compiler and lint diagnostics. Server Default leaves the server configuration unchanged.",
+      "type": "string",
+      "enum": [
+        "server-default",
+        "check",
+        "clippy"
+      ],
+      "default": "server-default"
+    },
+    "cargoFeatures": {
+      "title": "Cargo Features",
+      "description": "Additional Cargo features to analyze. Leave empty to keep the server default.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "allFeatures": {
+      "title": "All Cargo Features",
+      "description": "Analyze every Cargo feature instead of the explicit Cargo Features list.",
+      "type": "boolean",
+      "default": false
+    },
+    "cargoTarget": {
+      "title": "Cargo Target",
+      "description": "Optional compilation target triple, such as wasm32-unknown-unknown. Leave empty for the project target.",
+      "type": "string",
+      "default": ""
+    },
+    "allTargets": {
+      "title": "All Cargo Targets",
+      "description": "Include binaries, examples and tests in Cargo analysis. Server Default preserves rust-analyzer's choice.",
+      "type": "string",
+      "enum": [
+        "server-default",
+        "enabled",
+        "disabled"
+      ],
+      "default": "server-default"
+    },
+    "buildScripts": {
+      "title": "Build Scripts",
+      "description": "Run build.rs to discover generated code and configuration. Server Default preserves rust-analyzer's choice.",
+      "type": "string",
+      "enum": [
+        "server-default",
+        "enabled",
+        "disabled"
+      ],
+      "default": "server-default"
+    },
+    "procMacros": {
+      "title": "Procedural Macros",
+      "description": "Expand procedural macros for analysis. Server Default preserves rust-analyzer's choice.",
+      "type": "string",
+      "enum": [
+        "server-default",
+        "enabled",
+        "disabled"
+      ],
+      "default": "server-default"
+    },
+    "typeHints": {
+      "title": "Type Hints",
+      "description": "Control inline inferred type hints. Server Default preserves rust-analyzer's choice.",
+      "type": "string",
+      "enum": [
+        "server-default",
+        "enabled",
+        "disabled"
+      ],
+      "default": "server-default"
+    },
+    "parameterHints": {
+      "title": "Parameter Hints",
+      "description": "Control inline argument names. Server Default preserves rust-analyzer's choice.",
+      "type": "string",
+      "enum": [
+        "server-default",
+        "enabled",
+        "disabled"
+      ],
+      "default": "server-default"
+    }
+  }
+}
