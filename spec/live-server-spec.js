@@ -11,6 +11,7 @@ const { createProject, removeProject } = require("./helpers/rust-project");
 
 const serverPath = process.env.RUST_ANALYZER_PATH;
 const liveSuite = serverPath || process.env.RUST_ANALYZER_REQUIRED ? describe : xdescribe;
+const liveIt = (description, spec) => it(description, spec, 90000);
 
 liveSuite("ide-rust official rust-analyzer", () => {
   let client, adapter, project, uri, initialized, registration, originalTimeout;
@@ -18,7 +19,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
   const documentRequest = (method, extra = {}) =>
     client.request(method, { textDocument: { uri }, ...extra });
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     jasmine.useRealClock();
     originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 90000;
@@ -44,24 +45,24 @@ liveSuite("ide-rust official rust-analyzer", () => {
         (await documentRequest("textDocument/hover", { position: position("add(1", 1) }))?.contents,
       "Rust project indexing",
     );
-  });
-  afterAll(async () => {
+  }, 90000);
+  afterEach(async () => {
     await client?.stop();
     registration?.dispose();
     lumine.config.unset("ide-rust.serverPath");
     await lumine.packages.deactivatePackage("ide-rust");
     if (project) await removeProject(project.rootPath);
     jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
-  });
+  }, 30000);
 
-  it("runs the pinned official server and exposes only implemented switches", () => {
+  liveIt("runs the pinned official server and exposes only implemented switches", () => {
     expect(initialized.serverInfo.name).toBe("rust-analyzer");
     if (process.env.RUST_ANALYZER_EXPECTED_VERSION)
       expect(initialized.serverInfo.version).toContain(process.env.RUST_ANALYZER_EXPECTED_VERSION);
     expect(initialized.capabilities.typeHierarchyProvider).toBeUndefined();
     expect(adapter.isFeatureAvailable("codeLens")).toBe(false);
   });
-  it("reports a real type mismatch through pull diagnostics", async () => {
+  liveIt("reports a real type mismatch through pull diagnostics", async () => {
     const report = await client.waitFor(async () => {
       const result = await documentRequest("textDocument/diagnostic", {
         identifier: "rust-analyzer",
@@ -73,7 +74,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
     expect(error.range.start.line).toBe(position('"wrong"').line);
     expect(error.severity).toBe(1);
   });
-  it("completes project methods and resolves their signatures", async () => {
+  liveIt("completes project methods and resolves their signatures", async () => {
     const result = await documentRequest("textDocument/completion", {
       position: position("point.sum", 6),
     });
@@ -82,9 +83,9 @@ liveSuite("ide-rust official rust-analyzer", () => {
     expect(item.kind).toBe(2);
     expect(item.textEdit.newText).toContain("sum");
     const resolved = await client.request("completionItem/resolve", item);
-    expect(resolved.detail).toContain("fn sum");
+    expect(resolved.detail).toBe("fn(&self) -> i32");
   });
-  it("serves project documentation and argument signature help", async () => {
+  liveIt("serves project documentation and argument signature help", async () => {
     const hover = await documentRequest("textDocument/hover", { position: position("add(1", 1) });
     expect(hover.contents.value).toContain("Adds two integer values.");
     expect(hover.contents.value).toContain("pub fn add(left: i32, right: i32) -> i32");
@@ -95,7 +96,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
     expect(help.signatures[0].parameters.length).toBe(2);
     expect(help.activeParameter).toBe(0);
   });
-  it("finds definitions and references across Rust modules", async () => {
+  liveIt("finds definitions and references across Rust modules", async () => {
     const definitions = await documentRequest("textDocument/definition", {
       position: position("add(1", 1),
     });
@@ -112,7 +113,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
       ),
     ).toBe(true);
   });
-  it("renames both the declaration and calls in different modules", async () => {
+  liveIt("renames both the declaration and calls in different modules", async () => {
     const prepared = await documentRequest("textDocument/prepareRename", {
       position: position("fn add", 4),
     });
@@ -129,7 +130,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
       "crate::combine(self.x, self.y)",
     );
   });
-  it("returns document symbols and indexed workspace symbols", async () => {
+  liveIt("returns document symbols and indexed workspace symbols", async () => {
     const symbols = await documentRequest("textDocument/documentSymbol");
     expect(symbols.map(({ name }) => name)).toContain("caller");
     expect(symbols.find(({ name }) => name === "add").detail).toContain("i32");
@@ -138,7 +139,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
       workspace.some(({ name, location }) => name === "Point" && location.uri.endsWith("model.rs")),
     ).toBe(true);
   });
-  it("formats Rust code using the installed rustfmt", async () => {
+  liveIt("formats Rust code using the installed rustfmt", async () => {
     const edits = await documentRequest("textDocument/formatting", {
       options: { tabSize: 4, insertSpaces: true },
     });
@@ -147,7 +148,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
     expect(formatted).toContain("-> i32 {\n    left + right\n}");
     expect(formatted).toContain('pub fn wrong() -> i32 {\n    "wrong"\n}');
   });
-  it("provides inferred type and parameter-name hints", async () => {
+  liveIt("provides inferred type and parameter-name hints", async () => {
     const hints = await documentRequest("textDocument/inlayHint", {
       range: { start: { line: 0, character: 0 }, end: { line: 13, character: 0 } },
     });
@@ -158,7 +159,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
     expect(labels).toContain("left:");
     expect(labels).toContain(": Point");
   });
-  it("resolves and applies an actual inline-variable refactoring", async () => {
+  liveIt("resolves and applies an actual inline-variable refactoring", async () => {
     const actions = await documentRequest("textDocument/codeAction", {
       range: { start: position("let count", 4), end: position("let count", 9) },
       context: { diagnostics: [] },
@@ -171,7 +172,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
     expect(changed).not.toContain("let count");
     expect(changed).toContain("Point { x: add(1, 2), y: 0 }");
   });
-  it("classifies actual function declarations as semantic tokens", async () => {
+  liveIt("classifies actual function declarations as semantic tokens", async () => {
     const tokens = await documentRequest("textDocument/semanticTokens/full");
     const legend = initialized.capabilities.semanticTokensProvider.legend;
     const rows = project.source.split("\n");
@@ -196,7 +197,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
     );
     expect(decoded).toContain(jasmine.objectContaining({ text: "sum", type: "method" }));
   });
-  it("finds callers using the returned call-hierarchy item", async () => {
+  liveIt("finds callers using the returned call-hierarchy item", async () => {
     const items = await documentRequest("textDocument/prepareCallHierarchy", {
       position: position("fn add", 4),
     });
@@ -224,7 +225,7 @@ liveSuite("ide-rust through the real ide-client service", () => {
     lumine.project.setPaths([project.rootPath]);
     editor = await lumine.workspace.open(project.filePath);
     editor.setGrammar(lumine.grammars.grammarForScopeName("source.rust"));
-  });
+  }, 90000);
   afterEach(async () => {
     lumine.config.unset("ide-rust.features.hover");
     for (const session of service?.getSessions() || [])
@@ -237,9 +238,9 @@ liveSuite("ide-rust through the real ide-client service", () => {
     lumine.config.unset("ide-rust.serverPath");
     await removeProject(project.rootPath);
     jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
-  });
+  }, 30000);
 
-  it("routes Rust requests, honors feature switches and applies project renames", async () => {
+  liveIt("routes Rust requests, honors feature switches and applies project renames", async () => {
     const waitFor = async (check, label) => {
       const deadline = Date.now() + 60000;
       while (Date.now() < deadline) {
@@ -279,7 +280,15 @@ liveSuite("ide-rust through the real ide-client service", () => {
       position: positionOf(project.source, "fn add", 0, 4),
       newName: "combine",
     });
-    await service.applyWorkspaceEdit(edits, "Rename Rust function");
+    const applied = await service.applyWorkspaceEdit(edits, "Rename Rust function", session);
+    if (!applied) {
+      throw new Error(
+        `Rust workspace edit was refused: ${lumine.notifications
+          .getNotifications()
+          .map((notification) => notification.getDetail())
+          .join("; ")}`,
+      );
+    }
     expect(editor.getText()).toContain("pub fn combine(left:");
     expect(editor.getText()).toContain("combine(1, 2)");
     const modelEditor = lumine.workspace

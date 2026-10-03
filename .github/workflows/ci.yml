@@ -43,6 +43,7 @@ jobs:
       RUST_ANALYZER_SHA256: 23f711d86b5f826e22886f01d7355dc01e0f4c1357dafa29710a95b903b48c85
       RUST_TOOLCHAIN: 1.97.0
       RUST_ANALYZER_REQUIRED: "1"
+      RUST_ANALYZER_EXPECTED_VERSION: 0.3.3065
     steps:
       - uses: actions/checkout@v7
         with:
@@ -99,10 +100,12 @@ jobs:
         working-directory: lumine
       - name: Link package sources for the integration suite
         run: |
-          mkdir -p "$HOME/.lumine/packages-dev"
-          for package in ide-rust ide-client language-rust; do
-            ln -s "$GITHUB_WORKSPACE/$package" "$HOME/.lumine/packages-dev/$package"
+          mkdir -p "$GITHUB_WORKSPACE/.test-home/packages"
+          for package in ide-client language-rust; do
+            ln -s "$GITHUB_WORKSPACE/$package" "$GITHUB_WORKSPACE/.test-home/packages/$package"
           done
+          echo "LUMINE_HOME=$GITHUB_WORKSPACE/.test-home" >> "$GITHUB_ENV"
+          echo "LUMINE_TEST_PACKAGES=ide-client language-rust" >> "$GITHUB_ENV"
       - name: Run Jasmine specs inside Lumine
         working-directory: lumine
         env:

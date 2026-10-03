@@ -111,7 +111,8 @@ describe("ide-rust adapter and server management", () => {
     const previous = main;
     disposable.dispose();
     await lumine.packages.deactivatePackage("ide-rust");
-    lumine.packages.unloadPackage("ide-rust");
+    await lumine.packages.unloadPackage("ide-rust");
+    lumine.packages.loadPackage("ide-rust");
     const pkg = await lumine.packages.activatePackage("ide-rust");
     main = pkg.mainModule;
     server = require("../lib/server");
@@ -174,12 +175,10 @@ describe("ide-rust adapter and server management", () => {
     });
     spyOn(server, "resolveServer").and.resolveTo(null);
     expect(await adapter.resolveServer({ rootPath: os.tmpdir() })).toBeNull();
-    expect(missing).toHaveBeenCalledWith(
-      "ide-rust",
-      jasmine.objectContaining({
-        description: jasmine.stringMatching(/rustup component add rust-analyzer/),
-      }),
-    );
+    const [id, options] = missing.calls.argsFor(0);
+    expect(id).toBe("ide-rust");
+    expect(typeof options.description).toBe("string");
+    expect(options.description).toContain("rustup component add rust-analyzer");
   });
   it("does not silently replace a broken explicitly selected executable", async () => {
     spyOn(server, "probeServer").and.rejectWith(new Error("component not installed"));
@@ -220,6 +219,10 @@ describe("ide-rust adapter and server management", () => {
     expect(server.assetFor({ platform: "linux", arch: "x64" })).toBe(
       "rust-analyzer-x86_64-unknown-linux-gnu.gz",
     );
+    expect(server.assetFor({ platform: "linux", arch: "x64", libc: "musl" })).toBe(
+      "rust-analyzer-x86_64-unknown-linux-musl.gz",
+    );
+    expect(server.assetFor({ platform: "linux", arch: "arm64", libc: "musl" })).toBeNull();
     expect(server.assetFor({ platform: "linux", arch: "arm" })).toBe(
       "rust-analyzer-arm-unknown-linux-gnueabihf.gz",
     );
@@ -232,18 +235,16 @@ describe("ide-rust adapter and server management", () => {
     const digest = `sha256:${"a".repeat(64)}`;
     const api = {
       setServerInstallationStatus: jasmine.createSpy("status"),
-      latestGithubRelease: jasmine
-        .createSpy("release")
-        .and.resolveTo({
-          version: "2026-09-28",
-          assets: [
-            {
-              name: "rust-analyzer-x86_64-unknown-linux-gnu.gz",
-              url: "https://example.test/server.gz",
-              digest,
-            },
-          ],
-        }),
+      latestGithubRelease: jasmine.createSpy("release").and.resolveTo({
+        version: "2026-09-28",
+        assets: [
+          {
+            name: "rust-analyzer-x86_64-unknown-linux-gnu.gz",
+            url: "https://example.test/server.gz",
+            digest,
+          },
+        ],
+      }),
       downloadFile: jasmine
         .createSpy("download")
         .and.callFake(async (_url, destination) =>
@@ -286,5 +287,46 @@ describe("ide-rust adapter and server management", () => {
     await expectAsync(
       server.installServer({ storagePath: os.tmpdir(), api }, { platform: "aix", arch: "ppc64" }),
     ).toBeRejectedWithError(/no managed build/);
+  });
+  it("extracts a verified Windows zip through the hub install API", async () => {
+    scratch = await fs.promises.mkdtemp(
+      path.join(process.env.IDE_RUST_TEST_TMP || os.tmpdir(), "ide-rust-install-"),
+    );
+    const digest = `sha256:${"b".repeat(64)}`;
+    const api = {
+      setServerInstallationStatus() {},
+      latestGithubRelease: async () => ({
+        version: "2026-09-28",
+        assets: [
+          {
+            name: "rust-analyzer-x86_64-pc-windows-msvc.zip",
+            url: "https://example.test/server.zip",
+            digest,
+          },
+        ],
+      }),
+      downloadFile: jasmine
+        .createSpy("download")
+        .and.callFake(async (_url, destination) =>
+          fs.promises.writeFile(path.join(destination, "rust-analyzer.exe"), "native-server"),
+        ),
+      makeFileExecutable: jasmine
+        .createSpy("executable")
+        .and.callFake((filePath) => fs.promises.chmod(filePath, 0o755)),
+    };
+    expect(
+      await server.installServer({ storagePath: scratch, api }, { platform: "win32", arch: "x64" }),
+    ).toEqual({ version: "2026-09-28", binary: "rust-analyzer.exe" });
+    expect(api.downloadFile).toHaveBeenCalledWith("https://example.test/server.zip", scratch, {
+      type: "zip",
+      digest,
+    });
+  });
+  it("looks up the newest stable release through the hub", async () => {
+    const api = {
+      latestGithubRelease: jasmine.createSpy("release").and.resolveTo({ version: "2026-09-28" }),
+    };
+    expect(await server.latestServerVersion(api)).toBe("2026-09-28");
+    expect(api.latestGithubRelease).toHaveBeenCalledWith("rust-lang/rust-analyzer");
   });
 });
