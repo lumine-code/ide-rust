@@ -18,7 +18,7 @@ Connects rust-analyzer to the editor's shared language-server client. The server
 
 To install `ide-rust` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/ide-rust`.
 
-Install `ide-client` and `language-rust`. Use Manage Servers to install rust-analyzer, or install it through your Rust toolchain with `rustup component add rust-analyzer`. The package selects an explicit Server Path first, the managed installation next, and a working server on PATH last. A rustup proxy whose toolchain lacks rust-analyzer is skipped.
+Install `ide` and `language-rust`. Use Manage Servers to install rust-analyzer, or install it through your Rust toolchain with `rustup component add rust-analyzer`. The package selects an explicit Server Path first, the managed installation next, and a working server on PATH last. A rustup proxy whose toolchain lacks rust-analyzer is skipped.
 
 ## Usage
 
@@ -30,7 +30,7 @@ Rust-analyzer supports call hierarchy. Type hierarchy is not advertised by the s
 
 ## Services
 
-- `ide-client`: consumed to register rust-analyzer and route its language features through the editor.
+- `ide`: consumed to register rust-analyzer and route its language features through the editor.
 - `background-tips.provider`: provided to show a Rust setup tip on the empty workspace.
 
 ## Contributing

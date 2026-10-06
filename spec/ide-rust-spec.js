@@ -16,7 +16,7 @@ describe("ide-rust adapter and server management", () => {
     lumine.config.set(`ide-rust.${name}`, value);
   };
   const register = () => {
-    disposable = main.consumeIdeClient({
+    disposable = main.consumeIde({
       registerAdapter(value) {
         adapter = value;
         return { dispose: jasmine.createSpy("dispose") };
@@ -105,8 +105,8 @@ describe("ide-rust adapter and server management", () => {
   it("returns independent disposables when a provider reconnects", () => {
     const first = { dispose: jasmine.createSpy("first") };
     const second = { dispose: jasmine.createSpy("second") };
-    expect(main.consumeIdeClient({ registerAdapter: () => first })).toBe(first);
-    expect(main.consumeIdeClient({ registerAdapter: () => second })).toBe(second);
+    expect(main.consumeIde({ registerAdapter: () => first })).toBe(first);
+    expect(main.consumeIde({ registerAdapter: () => second })).toBe(second);
     first.dispose();
     expect(second.dispose).not.toHaveBeenCalled();
   });
@@ -177,7 +177,7 @@ describe("ide-rust adapter and server management", () => {
   });
   it("reports missing servers through the client instead of inventing a notification", async () => {
     const missing = jasmine.createSpy("reportMissingServer");
-    main.consumeIdeClient({
+    main.consumeIde({
       registerAdapter(value) {
         adapter = value;
         return disposable;

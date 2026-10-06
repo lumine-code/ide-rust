@@ -28,7 +28,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
     uri = fileUri(project.filePath);
     const pkg = await lumine.packages.activatePackage("ide-rust");
     lumine.config.set("ide-rust.serverPath", serverPath);
-    registration = pkg.mainModule.consumeIdeClient({
+    registration = pkg.mainModule.consumeIde({
       registerAdapter(value) {
         adapter = value;
         return { dispose() {} };
@@ -217,7 +217,7 @@ liveSuite("ide-rust official rust-analyzer", () => {
   });
 });
 
-liveSuite("ide-rust through the real ide-client service", () => {
+liveSuite("ide-rust through the real ide service", () => {
   let project, editor, service, originalPaths, originalTimeout;
 
   beforeEach(async () => {
@@ -228,8 +228,8 @@ liveSuite("ide-rust through the real ide-client service", () => {
     originalPaths = lumine.project.getPaths();
     await lumine.packages.activatePackage("ide-rust");
     lumine.config.set("ide-rust.serverPath", serverPath);
-    const clientPackage = await lumine.packages.activatePackage("ide-client");
-    service = clientPackage.mainModule.provideIdeClient();
+    const clientPackage = await lumine.packages.activatePackage("ide");
+    service = clientPackage.mainModule.provideIde();
     await lumine.packages.activatePackage("language-rust");
     lumine.project.setPaths([project.rootPath]);
     editor = await lumine.workspace.open(project.filePath);
@@ -243,7 +243,7 @@ liveSuite("ide-rust through the real ide-client service", () => {
       if (item.getPath()?.startsWith(project.rootPath)) item.destroy();
     lumine.project.setPaths(originalPaths);
     await lumine.packages.deactivatePackage("ide-rust");
-    await lumine.packages.deactivatePackage("ide-client");
+    await lumine.packages.deactivatePackage("ide");
     lumine.config.unset("ide-rust.serverPath");
     await removeProject(project.rootPath);
     jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
@@ -273,7 +273,7 @@ liveSuite("ide-rust through the real ide-client service", () => {
         if ([-32801, -32802].includes(error.code)) return null;
         throw error;
       }
-    }, "Rust hover through ide-client");
+    }, "Rust hover through ide");
     expect(hover.contents.value).toContain("Adds two integer values.");
     lumine.config.set("ide-rust.features.hover", false);
     expect(await service.activeSessionForFeature(editor, "textDocument/hover", "hover")).toBeNull();

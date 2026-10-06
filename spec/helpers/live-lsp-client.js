@@ -2,7 +2,7 @@ const { serverContext } = require("./server-resolver");
 const childProcess = require("node:child_process");
 const path = require("node:path");
 const { configurationContext, workspaceConfiguration } = require(
-  path.join(lumine.packages.resolvePackagePath("ide-client"), "lib", "workspace-configuration"),
+  path.join(lumine.packages.resolvePackagePath("ide"), "lib", "workspace-configuration"),
 );
 const { pathToFileURL, fileURLToPath } = require("node:url");
 const {

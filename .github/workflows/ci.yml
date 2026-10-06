@@ -54,8 +54,8 @@ jobs:
           path: lumine
       - uses: actions/checkout@v7
         with:
-          repository: lumine-code/ide-client
-          path: ide-client
+          repository: lumine-code/ide
+          path: ide
       - uses: actions/checkout@v7
         with:
           repository: lumine-code/language-rust
@@ -67,7 +67,7 @@ jobs:
           cache-dependency-path: |
             lumine/package-lock.json
             ide-rust/package-lock.json
-            ide-client/package-lock.json
+            ide/package-lock.json
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -91,7 +91,7 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: ide-rust
       - run: npm ci --ignore-scripts
-        working-directory: ide-client
+        working-directory: ide
       - run: npm ci --ignore-scripts
         working-directory: lumine
       - run: node ./node_modules/electron/install.js
@@ -101,11 +101,11 @@ jobs:
       - name: Link package sources for the integration suite
         run: |
           mkdir -p "$GITHUB_WORKSPACE/.test-home/packages"
-          for package in ide-client language-rust; do
+          for package in ide language-rust; do
             ln -s "$GITHUB_WORKSPACE/$package" "$GITHUB_WORKSPACE/.test-home/packages/$package"
           done
           echo "LUMINE_HOME=$GITHUB_WORKSPACE/.test-home" >> "$GITHUB_ENV"
-          echo "LUMINE_TEST_PACKAGES=ide-client language-rust" >> "$GITHUB_ENV"
+          echo "LUMINE_TEST_PACKAGES=ide language-rust" >> "$GITHUB_ENV"
       - name: Run Jasmine specs inside Lumine
         working-directory: lumine
         env:

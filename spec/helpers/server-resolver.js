@@ -1,6 +1,6 @@
 const path = require("node:path");
 const { createServerResolver } = require(
-  path.join(lumine.packages.resolvePackagePath("ide-client"), "lib", "server-resolver"),
+  path.join(lumine.packages.resolvePackagePath("ide"), "lib", "server-resolver"),
 );
 
 exports.resolver = { ...createServerResolver() };
