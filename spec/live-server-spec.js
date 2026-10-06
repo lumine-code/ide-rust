@@ -40,6 +40,15 @@ liveSuite("ide-rust official rust-analyzer", () => {
     client = new LiveLspClient(adapter, project.rootPath);
     initialized = await client.start();
     await client.open(uri, "rust", project.source);
+    // Hover can answer before rust-analyzer finishes loading its VFS. During
+    // that load semantic-token requests deliberately return null, so use the
+    // server's readiness signal before making semantic assertions.
+    await client.waitFor(
+      () =>
+        client.notifications.findLast(({ method }) => method === "experimental/serverStatus")
+          ?.params.quiescent,
+      "Rust project loading",
+    );
     await client.waitFor(
       async () =>
         (await documentRequest("textDocument/hover", { position: position("add(1", 1) }))?.contents,
