@@ -49,9 +49,7 @@ describe("ide-rust adapter and server management", () => {
   it("preserves server defaults and leaves unrelated configuration alone", () => {
     expect(adapter.getInitializationOptions()).toEqual({});
     expect(adapter.getSettings()).toEqual({ "rust-analyzer": {} });
-    expect(adapter.getWorkspaceConfiguration("rust-analyzer")).toEqual({});
-    expect(adapter.getWorkspaceConfiguration("rust-analyzer.cargo")).toBeUndefined();
-    expect(adapter.getWorkspaceConfiguration("editor")).toBeUndefined();
+    expect(adapter.getWorkspaceConfiguration).toBeUndefined();
   });
   it("maps explicit check, Cargo and macro overrides consistently", () => {
     configure("checkOnSave", "disabled");
@@ -74,7 +72,6 @@ describe("ide-rust adapter and server management", () => {
     };
     expect(adapter.getInitializationOptions()).toEqual(expected);
     expect(adapter.getSettings()).toEqual({ "rust-analyzer": expected });
-    expect(adapter.getWorkspaceConfiguration("rust-analyzer.check.command")).toBe("clippy");
     configure("allFeatures", true);
     expect(adapter.getInitializationOptions().cargo.features).toBe("all");
   });
@@ -287,6 +284,26 @@ describe("ide-rust adapter and server management", () => {
     await expectAsync(
       server.installServer({ storagePath: os.tmpdir(), api }, { platform: "aix", arch: "ppc64" }),
     ).toBeRejectedWithError(/no managed build/);
+  });
+  it("installs the requested release without substituting the newest one", async () => {
+    const api = {
+      setServerInstallationStatus() {},
+      latestGithubRelease: jasmine.createSpy("latest"),
+      githubReleaseByTag: jasmine
+        .createSpy("byTag")
+        .and.resolveTo({ version: "2026-09-21", assets: [] }),
+    };
+    await expectAsync(
+      server.installServer(
+        { storagePath: os.tmpdir(), version: "2026-09-21", api },
+        { platform: "linux", arch: "x64" },
+      ),
+    ).toBeRejectedWithError(/does not contain/);
+    expect(api.githubReleaseByTag).toHaveBeenCalledOnceWith(
+      "rust-lang/rust-analyzer",
+      "2026-09-21",
+    );
+    expect(api.latestGithubRelease).not.toHaveBeenCalled();
   });
   it("extracts a verified Windows zip through the hub install API", async () => {
     scratch = await fs.promises.mkdtemp(

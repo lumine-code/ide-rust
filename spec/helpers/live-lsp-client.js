@@ -1,5 +1,8 @@
 const childProcess = require("node:child_process");
 const path = require("node:path");
+const { configurationContext, workspaceConfiguration } = require(
+  path.join(lumine.packages.resolvePackagePath("ide-client"), "lib", "workspace-configuration"),
+);
 const { pathToFileURL, fileURLToPath } = require("node:url");
 const {
   createMessageConnection,
@@ -26,8 +29,17 @@ class LiveLspClient {
     this.documents = new Map();
     this.stderr = "";
   }
+  configurationContext() {
+    return configurationContext(this.rootPath, this.launch, this.session);
+  }
+
+  configuration(items) {
+    return workspaceConfiguration(this.adapter, items, this.configurationContext());
+  }
+
   async start() {
     const launch = await this.adapter.resolveServer({ rootPath: this.rootPath });
+    this.launch = launch;
     if (!launch) throw new Error("No working rust-analyzer was found for the live specs.");
     this.child = childProcess.spawn(launch.command, launch.args || [], {
       cwd: launch.cwd || this.rootPath,
@@ -42,11 +54,7 @@ class LiveLspClient {
       { error: (message) => (this.stderr += `${message}\n`), warn() {}, info() {}, log() {} },
     );
     this.connection.onNotification((method, params) => this.notifications.push({ method, params }));
-    this.connection.onRequest("workspace/configuration", ({ items }) =>
-      items.map(({ section, scopeUri }) =>
-        this.adapter.getWorkspaceConfiguration?.(section, scopeUri),
-      ),
-    );
+    this.connection.onRequest("workspace/configuration", ({ items }) => this.configuration(items));
     this.connection.onRequest("workspace/workspaceFolders", () => this.workspaceFolders);
     this.connection.onRequest("client/registerCapability", () => null);
     this.connection.onRequest("window/workDoneProgress/create", () => null);
@@ -175,7 +183,7 @@ class LiveLspClient {
     this.capabilities = result.capabilities;
     await this.connection.sendNotification("initialized", {});
     await this.connection.sendNotification("workspace/didChangeConfiguration", {
-      settings: this.adapter.getSettings?.() || {},
+      settings: (await this.adapter.getSettings?.(this.configurationContext())) ?? {},
     });
     return result;
   }
