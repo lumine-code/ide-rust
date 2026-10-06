@@ -1,3 +1,9 @@
+const {
+  createServerResolver,
+  serverContext,
+  installContext,
+  serverApi,
+} = require("./helpers/server-resolver");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -118,48 +124,56 @@ describe("ide-rust adapter and server management", () => {
     expect(adapter.installServer).toBe(server.installServer);
     expect(main.provideBackgroundTips().packageName).toBe("ide-rust");
   });
-  it("prefers the configured executable, then managed, before discovery", async () => {
-    spyOn(server, "probeServer").and.resolveTo("test-version");
-    spyOn(server, "executablesOnPath").and.returnValue([]);
-    const managed = { binaryPath: "/managed/rust-analyzer", version: "2026-09-28" };
-    expect((await server.resolveServer(process.execPath, managed)).command).toBe(process.execPath);
-    expect(await server.resolveServer("", managed)).toEqual({
-      command: managed.binaryPath,
-      args: [],
-      version: managed.version,
-    });
-    expect(server.executablesOnPath).not.toHaveBeenCalled();
-  });
+  const nativeFixture = (directories) => {
+    scratch = fs.mkdtempSync(path.join(os.tmpdir(), "ide-rust-discovery-"));
+    const paths = directories.map((directory) => path.join(scratch, directory));
+    for (const directory of paths) fs.mkdirSync(directory);
+    const binary = (directory, name) => {
+      const command = path.join(directory, name + (process.platform === "win32" ? ".exe" : ""));
+      fs.copyFileSync(process.execPath, command);
+      fs.chmodSync(command, 0o755);
+      return command;
+    };
+    return { paths, binary };
+  };
   it("skips a broken rustup proxy and finds a working later PATH entry", async () => {
-    spyOn(server, "executablesOnPath").and.returnValue([
-      "/proxy/rust-analyzer",
-      "/native/rust-analyzer",
-    ]);
+    const { paths, binary } = nativeFixture(["proxy", "native"]);
+    const proxy = binary(paths[0], "rust-analyzer"),
+      native = binary(paths[1], "rust-analyzer");
     spyOn(server, "probeServer").and.callFake(async (command) => {
-      if (command.startsWith("/proxy")) throw new Error("component not installed");
+      if (command === proxy) throw new Error("component not installed");
       return "native-version";
     });
-    expect(await server.resolveServer("")).toEqual({
-      command: "/native/rust-analyzer",
+    const context = serverContext({
+      resolver: createServerResolver({ environment: { PATH: paths.join(path.delimiter) } }),
+    });
+    expect(await server.resolveServer(context)).toEqual({
+      command: native,
       args: [],
       version: "native-version",
     });
+    expect(server.probeServer.calls.allArgs().map(([command]) => command)).toEqual([proxy, native]);
   });
   it("uses rustup's real binary only after PATH candidates fail", async () => {
-    spyOn(server, "executablesOnPath").and.callFake((name) =>
-      name === "rustup" ? ["/cargo/rustup"] : [],
-    );
-    spyOn(server, "run").and.resolveTo("/toolchain/rust-analyzer");
+    const { paths, binary } = nativeFixture(["cargo", "toolchain"]);
+    const rustup = binary(paths[0], "rustup"),
+      analyzer = binary(paths[1], "rust-analyzer");
+    spyOn(server, "run").and.resolveTo(analyzer);
     spyOn(server, "probeServer").and.resolveTo("component-version");
-    expect((await server.resolveServer("")).command).toBe("/toolchain/rust-analyzer");
-    expect(server.run).toHaveBeenCalledWith("/cargo/rustup", ["which", "rust-analyzer"], {});
+    const context = serverContext({
+      resolver: createServerResolver({ environment: { PATH: paths[0] } }),
+    });
+    expect((await server.resolveServer(context)).command).toBe(analyzer);
+    expect(server.run).toHaveBeenCalledWith(rustup, ["which", "rust-analyzer"], {});
   });
   it("treats an unavailable rustup component as a missing server", async () => {
-    spyOn(server, "executablesOnPath").and.callFake((name) =>
-      name === "rustup" ? ["/cargo/rustup"] : [],
-    );
+    const { paths, binary } = nativeFixture(["cargo"]);
+    binary(paths[0], "rustup");
     spyOn(server, "run").and.rejectWith(new Error("unknown binary"));
-    expect(await server.resolveServer("")).toBeNull();
+    const context = serverContext({
+      resolver: createServerResolver({ environment: { PATH: paths[0] } }),
+    });
+    expect(await server.resolveServer(context)).toBeNull();
   });
   it("reports missing servers through the client instead of inventing a notification", async () => {
     const missing = jasmine.createSpy("reportMissingServer");
@@ -171,7 +185,7 @@ describe("ide-rust adapter and server management", () => {
       reportMissingServer: missing,
     });
     spyOn(server, "resolveServer").and.resolveTo(null);
-    expect(await adapter.resolveServer({ rootPath: os.tmpdir() })).toBeNull();
+    expect(await adapter.resolveServer(serverContext({ rootPath: os.tmpdir() }))).toBeNull();
     const [id, options] = missing.calls.argsFor(0);
     expect(id).toBe("ide-rust");
     expect(typeof options.description).toBe("string");
@@ -179,11 +193,9 @@ describe("ide-rust adapter and server management", () => {
   });
   it("does not silently replace a broken explicitly selected executable", async () => {
     spyOn(server, "probeServer").and.rejectWith(new Error("component not installed"));
-    spyOn(server, "executablesOnPath");
-    await expectAsync(server.resolveServer(process.execPath)).toBeRejectedWithError(
-      /configured rust-analyzer could not start/,
-    );
-    expect(server.executablesOnPath).not.toHaveBeenCalled();
+    await expectAsync(
+      server.resolveServer(serverContext(), process.execPath),
+    ).toBeRejectedWithError(/configured rust-analyzer could not start/);
   });
   it("checks version output rather than accepting any executable", async () => {
     spyOn(server, "run").and.resolveTo("v24.18.0");
@@ -196,15 +208,6 @@ describe("ide-rust adapter and server management", () => {
     expect(server.rustEnvironment("nightly").RUSTUP_TOOLCHAIN).toBe("nightly");
     expect(server.rustEnvironment("").RUSTUP_TOOLCHAIN).toBeUndefined();
     expect(process.env.RUSTUP_TOOLCHAIN).toBe(previous);
-  });
-  it("finds executable files on a synthetic PATH and ignores directories", () => {
-    const name = path.basename(process.execPath, path.extname(process.execPath));
-    expect(server.executablesOnPath(name, { PATH: path.dirname(process.execPath) })).toContain(
-      process.execPath,
-    );
-    expect(
-      server.executablesOnPath("absent-language-server", { PATH: path.dirname(process.execPath) }),
-    ).toEqual([]);
   });
   it("selects exact native release assets on supported platforms", () => {
     expect(server.assetFor({ platform: "win32", arch: "x64" })).toBe(
@@ -251,10 +254,10 @@ describe("ide-rust adapter and server management", () => {
         .createSpy("executable")
         .and.callFake((filePath) => fs.promises.chmod(filePath, 0o755)),
     };
-    const installed = await server.installServer(
-      { storagePath: scratch, api },
-      { platform: "linux", arch: "x64" },
-    );
+    const installed = await server.installServer(installContext({ storagePath: scratch, api }), {
+      platform: "linux",
+      arch: "x64",
+    });
     expect(installed).toEqual({ version: "2026-09-28", binary: "rust-analyzer" });
     expect(api.downloadFile).toHaveBeenCalledWith(
       "https://example.test/server.gz",
@@ -271,18 +274,27 @@ describe("ide-rust adapter and server management", () => {
       downloadFile: jasmine.createSpy("download"),
     };
     await expectAsync(
-      server.installServer({ storagePath: os.tmpdir(), api }, { platform: "linux", arch: "x64" }),
+      server.installServer(installContext({ storagePath: os.tmpdir(), api }), {
+        platform: "linux",
+        arch: "x64",
+      }),
     ).toBeRejectedWithError(/does not contain/);
     api.latestGithubRelease = async () => ({
       version: "2026-09-28",
       assets: [{ name: "rust-analyzer-x86_64-unknown-linux-gnu.gz" }],
     });
     await expectAsync(
-      server.installServer({ storagePath: os.tmpdir(), api }, { platform: "linux", arch: "x64" }),
+      server.installServer(installContext({ storagePath: os.tmpdir(), api }), {
+        platform: "linux",
+        arch: "x64",
+      }),
     ).toBeRejectedWithError(/SHA-256/);
     expect(api.downloadFile).not.toHaveBeenCalled();
     await expectAsync(
-      server.installServer({ storagePath: os.tmpdir(), api }, { platform: "aix", arch: "ppc64" }),
+      server.installServer(installContext({ storagePath: os.tmpdir(), api }), {
+        platform: "aix",
+        arch: "ppc64",
+      }),
     ).toBeRejectedWithError(/no managed build/);
   });
   it("installs the requested release without substituting the newest one", async () => {
@@ -295,7 +307,7 @@ describe("ide-rust adapter and server management", () => {
     };
     await expectAsync(
       server.installServer(
-        { storagePath: os.tmpdir(), version: "2026-09-21", api },
+        installContext({ storagePath: os.tmpdir(), version: "2026-09-21", api }),
         { platform: "linux", arch: "x64" },
       ),
     ).toBeRejectedWithError(/does not contain/);
@@ -332,7 +344,10 @@ describe("ide-rust adapter and server management", () => {
         .and.callFake((filePath) => fs.promises.chmod(filePath, 0o755)),
     };
     expect(
-      await server.installServer({ storagePath: scratch, api }, { platform: "win32", arch: "x64" }),
+      await server.installServer(installContext({ storagePath: scratch, api }), {
+        platform: "win32",
+        arch: "x64",
+      }),
     ).toEqual({ version: "2026-09-28", binary: "rust-analyzer.exe" });
     expect(api.downloadFile).toHaveBeenCalledWith("https://example.test/server.zip", scratch, {
       type: "zip",
@@ -343,7 +358,7 @@ describe("ide-rust adapter and server management", () => {
     const api = {
       latestGithubRelease: jasmine.createSpy("release").and.resolveTo({ version: "2026-09-28" }),
     };
-    expect(await server.latestServerVersion(api)).toBe("2026-09-28");
+    expect(await server.latestServerVersion(serverApi(api))).toBe("2026-09-28");
     expect(api.latestGithubRelease).toHaveBeenCalledWith("rust-lang/rust-analyzer");
   });
 });
