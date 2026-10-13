@@ -1,0 +1,16 @@
+{
+  "title": "ide-rust",
+  "description": "Rust-analyzer explains a mismatched type in a Rust program.",
+  "recordedOn": "2026-10-13",
+  "sourceRevision": "cdfbb2a2c7b1361d74c80dddc957f515b4693f33",
+  "mode": "normal",
+  "fontSettings": "default",
+  "images": [
+    {
+      "file": "demo.png",
+      "label": "Rust-analyzer explains a mismatched type in a Rust program.",
+      "width": 1100,
+      "height": 600
+    }
+  ]
+}

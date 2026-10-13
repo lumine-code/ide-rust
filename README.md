@@ -14,6 +14,8 @@ Connects rust-analyzer to the editor's shared language-server client. The server
 - **Inline information**: show inferred types, parameter hints, documentation and semantic highlighting.
 - **Server management**: install verified official releases on Windows, macOS and Linux through Manage Servers.
 
+![Rust-analyzer explains a mismatched type in a Rust program.](.github/demo.png)
+
 ## Installation
 
 To install `ide-rust` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/ide-rust`.
