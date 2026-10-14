@@ -23,8 +23,8 @@ module.exports = {
   },
   async prepare(context) {
     const { lumine, state, fixture, open } = context;
-    state.editor = await open("ide-rust/main.rs");
     await lumine.project.setPaths([fixture("ide-rust")]);
+    state.editor = await open("ide-rust/main.rs");
     lumine.grammars.assignLanguageMode(state.editor.getBuffer(), "source.rust");
     await state.editor.getBuffer().getLanguageMode().ready;
     await state.editor.getBuffer().getLanguageMode().atGrammarSettlement?.();
