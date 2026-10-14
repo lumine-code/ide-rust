@@ -2,8 +2,8 @@
   "title": "ide-rust",
   "description": "Rust-analyzer explains a mismatched type in a Rust program.",
   "recordedOn": "2026-10-14",
-  "sourceRevision": "c350544ae91db723090f87a66f6f1b71a9ec73e1",
-  "themeSourceRevision": "7fbd047a87ecf1367c896b19ff270cdc28d319f7",
+  "sourceRevision": "de88c95a5acdd0f0fd4101525703f031657cd5cb",
+  "themeSourceRevision": "a673daf5882dc988419316d144a9bbe0aec9cb53",
   "mode": "normal",
   "fontSettings": "default",
   "scenario": "demo.js",
@@ -11,8 +11,8 @@
   "environment": {
     "platform": "win32",
     "arch": "x64",
-    "electron": "44.7.0",
-    "chrome": "152.0.7977.130",
+    "electron": "44.7.1",
+    "chrome": "152.0.7977.149",
     "devicePixelRatio": 1,
     "locale": "en-GB",
     "fontFamily": "Fira Code, Menlo, DejaVu Sans Mono, Consolas, monospace",
@@ -21,61 +21,62 @@
   },
   "viewport": { "width": 1100, "height": 600 },
   "cornerRadius": 10,
+  "privacy": { "version": 1, "location": "neutral", "textChecked": true },
   "sources": {
     "editor": {
-      "revision": "29dc912b2f81d9b6253f326d886c033c5f7ea302",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "b3fcd05714f72e3aa88498c47334a04de2c51afa",
+      "dirty": true,
+      "workingTreeHash": "b83140dc0b2863be081113231aec9ccbed9525566ea48dc135cdd3c725bd1985"
     },
     "package": {
-      "revision": "c350544ae91db723090f87a66f6f1b71a9ec73e1",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "de88c95a5acdd0f0fd4101525703f031657cd5cb",
+      "dirty": true,
+      "workingTreeHash": "057790295de5c70ab045f5536d8e725e4d4bb25ff42453c3efae1a0830acb27b"
     },
     "ide-rust": {
-      "revision": "c350544ae91db723090f87a66f6f1b71a9ec73e1",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "de88c95a5acdd0f0fd4101525703f031657cd5cb",
+      "dirty": true,
+      "workingTreeHash": "057790295de5c70ab045f5536d8e725e4d4bb25ff42453c3efae1a0830acb27b"
     },
     "documentation-view": {
-      "revision": "98f00040402867bdd5b046f46fb3cf31eecb17af",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "ea0803a75d3fbe81fbc536679f76d8e71e15f345",
+      "dirty": true,
+      "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
     },
     "hover": {
-      "revision": "e126cdb80e5da8701b0e722be787b1cfedde9bed",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "5d99894148596df38f8978bdb74ac34be282f667",
+      "dirty": true,
+      "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
     },
     "ide": {
-      "revision": "0c1735fefa858a2834213bf6d52db91a3582b828",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "59f8da5212790364e555b0c6d6395f4259de3e1b",
+      "dirty": true,
+      "workingTreeHash": "a0bd847088f97b8975486e9e3b2e89709141f83667163afbb8287fc412a16ce7"
     },
     "language-rust": {
-      "revision": "5b17086ec3ddab907dfbdbf3a1691fbbbf7c17a4",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "fcf57919a21f42249dc7d103c32e41d7741e04b8",
+      "dirty": true,
+      "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
     },
     "linter": {
-      "revision": "9fc80e0296b3af2507e5ff04c7e043a813540245",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "0c28acdc9bcf35e69d3e78e977fad639f6dc603e",
+      "dirty": true,
+      "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
     },
     "linter-panel": {
-      "revision": "e380022d4df6542bcb57b4337b614c61c86f1d68",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "c28b72a2b616f1c4e06efee479ffdef529e75fe1",
+      "dirty": true,
+      "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
     },
     "marker": {
-      "revision": "bb4fc8fec8c9d09fe59db9b0d70352ff33cde8f8",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "6629eb8e137cb6eeb8e79903d6f4826d352fb3b2",
+      "dirty": true,
+      "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
     },
     "one-theme": {
-      "revision": "7fbd047a87ecf1367c896b19ff270cdc28d319f7",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "a673daf5882dc988419316d144a9bbe0aec9cb53",
+      "dirty": true,
+      "workingTreeHash": "e06354f226961170520bc191010f45bc69426704f14a385355239d06ab8ff306"
     }
   },
   "fixtures": [
@@ -94,7 +95,7 @@
       "label": "Rust-analyzer explains a mismatched type in a Rust program.",
       "width": 1100,
       "height": 600,
-      "sha256": "5fcdb813a514ccfd3367a59c9f61b4ba00ad7b5f6878c0f88091a99a0574c575"
+      "sha256": "f6e0a5e3fc4d832ed20f6dee2799d99c805ad82bf5b9ea933e402c43d4410744"
     }
   ]
 }
