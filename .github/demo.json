@@ -63,7 +63,7 @@
       "dirty": true,
       "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
     },
-    "linter-panel": {
+    "diagnostics": {
       "revision": "c28b72a2b616f1c4e06efee479ffdef529e75fe1",
       "dirty": true,
       "workingTreeHash": "544bcf00c948e5f32c1e3dbd8b7ef76bcc72d20a7d0070c62fc4adb139e96459"
