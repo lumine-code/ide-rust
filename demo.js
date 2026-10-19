@@ -82,9 +82,7 @@ module.exports = {
         lumine.workspace.getBottomDock().show();
       },
       ready() {
-        return Boolean(
-          document.querySelector(".diagnostics")?.innerText.includes("rust-analyzer"),
-        );
+        return Boolean(document.querySelector(".diagnostics")?.innerText.includes("rust-analyzer"));
       },
     },
   ],
